@@ -14,18 +14,11 @@ class Hemming:
         """
         return ''.join([bin(ord(c))[2:].zfill(8) for c in chars])
 
-    @staticmethod
-    def chunk_iterator(text_bin, chunk_size):
+    def set_empty_control_bits(self, value_bin) -> str:
         """
-        Генератор блоков бинарных данных
-        """
-        for i in range(len(text_bin)):
-            if not i % chunk_size:
-                yield text_bin[i:i + chunk_size]
-
-    def set_empty_control_bits(self, value_bin):
-        """
-        Добавить в бинарный блок "пустые" контрольные биты
+        Добавить в бинарную строку "пустые" контрольные биты
+        На вход: бинарная строка
+        На выход: бинарная строка с нулями в позициях контрольных битов
         """
         for bit in self.control_bits:
             value_bin = value_bin[:bit - 1] + '0' + value_bin[bit - 1:]
@@ -34,22 +27,19 @@ class Hemming:
     def get_control_bits_data(self, value_bin) -> str:
         """
         Получение информации о контрольных битах из бинарных данных
-        На входе бинарная строка без контрольных бит
-        На выходе строка с уже заполненными битами
+        На вход: бинарная строка без контрольных бит
+        На выход: строка с уже заполненными контрольными битами
         """
 
         value_bin = self.set_empty_control_bits(value_bin)
-        print(value_bin)
+        value_bin = list(value_bin)
         for index in self.control_bits:
             bits_sum = 0
-            for i in range(index - 1, len(value_bin), index + 1):
-                bits_sum += sum([int(value_bin[j]) for j in range(i, min(i + index, len(value_bin)))])
-            # TODO: предыдущие 2 строчки нихуя не работают. переделать.
-            print(index, bits_sum)
-            if not (bits_sum % 2):
-                value_bin = value_bin[:index] + '1' + value_bin[index + 1:]
-        print(value_bin)
-        return value_bin
+            for i in range(index - 1, len(value_bin), index * 2):
+                bits_sum += sum([int(c) for c in value_bin[i:i + index]])
+            if bits_sum % 2:
+                value_bin[index - 1] = '1'
+        return ''.join(value_bin)
 
     def set_empty_control_bits(self, value_bin):
         """
@@ -59,7 +49,7 @@ class Hemming:
             value_bin = value_bin[:bit - 1] + '0' + value_bin[bit - 1:]
         return value_bin
 
-    def set_control_bits(self, value_bin):
+    def set_control_bits(self, value_bin) -> str:
         """
         Установить значения контрольных бит
         """
@@ -70,17 +60,20 @@ class Hemming:
     def encode(self, source, is_bin=False) -> str:
         """
         Кодирование данных
+        На выход: переданное сообщение
+        На выход: закодированное сообщение в бинарном формате, с вставленными контрольными битами
         """
         text_bin = source
         if not is_bin:
             text_bin = self.chars_to_bin(source)
-        # print(f"text_bin: {text_bin}")
         result = self.set_control_bits(text_bin)
         return result
 
-    def exclude_control_bits(self, value_bin):
+    def exclude_control_bits(self, value_bin) -> str:
         """
-        Исключить информацию о контрольных битах из блока бинарных данных
+        Исключение контрольных битов из value_bin
+        На вход: строка с контрольными битами
+        На выход: строка, меньшего размера, с исключенными контрольными битами
         """
         clean_value_bin = ''
         for index, char_bin in enumerate(list(value_bin), 1):
@@ -89,32 +82,46 @@ class Hemming:
 
         return clean_value_bin
 
-    def check_and_fix_error(self, encoded_source):
+    def check_and_fix_error(self, encoded_source) -> str:
         """
         Проверка и исправление ошибки в бинарной строке
+        На вход: кодированная строка с шумом
+        На выход: строка с исправленной ошибкой(одной)
         """
-        # TODO: алгоритм проверки ошибок
+        # удаляем контрольные биты в зашумленной строке
         encoded_without_bits = self.exclude_control_bits(encoded_source)
+        # пересчитываем контрольные биты
         new_encoded_source = self.get_control_bits_data(encoded_without_bits)
+
+        # определяем номер бита, в котором ошибка, сложив значения контрольных битов, которые изменились
         err_bit = 0
         for index in self.control_bits:
             if new_encoded_source[index - 1] != encoded_source[index - 1]:
                 err_bit += index
+        err_bit -= 1
+
+        # если нашлась ошибка, инверируем бит с индексов err_bir
+        if err_bit != -1:
+            encoded_source = encoded_source[:err_bit] + str(int(not int(encoded_source[err_bit]))) + encoded_source[
+                                                                                                     err_bit + 1:]
         return encoded_source
 
-    def decode(self, encoded):
+    def decode(self, encoded, to_fix=True) -> str:
         """
         Декодирование данных
+        На выход: кодированная строка с шумом
+        На выход: декодированная строка. Если to_fix = False, то исправление ошибок проводиться не будет.
         """
         decoded_value = ''
 
         # исправление ошибок
-        fixed_encoded = self.check_and_fix_error(encoded)
+        if to_fix:
+            encoded = self.check_and_fix_error(encoded)
 
         # удаление контрольных битов из сообщения
-        fixed_encoded = self.exclude_control_bits(fixed_encoded)
+        encoded = self.exclude_control_bits(encoded)
 
         # декодирование бинарных блоков и объединение в одно сообщение
-        for clean_char in [fixed_encoded[i:i + 8] for i in range(len(fixed_encoded)) if not i % 8]:
+        for clean_char in [encoded[i:i + 8] for i in range(len(encoded)) if not i % 8]:
             decoded_value += chr(int(clean_char, 2))
         return decoded_value
