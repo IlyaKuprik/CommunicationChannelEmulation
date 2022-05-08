@@ -1,16 +1,22 @@
 from utils.hemming_codes import Hemming
+from utils.channel import emulate_channel
 
 
-source = "privet"
+def emulate(source, P):
+    print(f"Строка, поданая на вход: {source}")
+    coder = Hemming(len(source))
+    encoded_source = coder.encode(source)
+    print(f"Зкодированная строка, поданая на вход: {encoded_source}")
 
-coder = Hemming(len(source))
-encoded_source = coder.encode(source)
-print(f"Строка, поданая на вход: {source}")
-print(f"Полученный код: {encoded_source}")
-# сделаем ошибку
-ind = 16
-encoded_source = encoded_source[:ind] + str(int(not int(encoded_source[ind]))) + encoded_source[ind+1:]
-print(f"Декодированный код: {coder.decode(encoded_source, to_fix=False)}")
-print(f"Декодированный код с исправлением ошибок: {coder.decode(encoded_source)}")
+    result_encoded_source = emulate_channel(P, encoded_source)
+
+    print(f"Закодированная строка, полученная через канал связи: {result_encoded_source}")
+    errs = [k for k, (i, j) in enumerate(zip(list(result_encoded_source), list(encoded_source))) if i != j]
+    print("Позиции, в которых возникли ошибки:", errs)
+    result_source = coder.decode(result_encoded_source, to_fix=True)
+    print(f"Декодированная строка с исправленной ошибкой(одной): {result_source}")
 
 
+message = "hi"
+P_matrix = [[0.9, 0.1], [0.1, 0.9]]
+emulate(message, P_matrix)

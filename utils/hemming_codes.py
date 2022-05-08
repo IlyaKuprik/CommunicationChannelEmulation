@@ -99,7 +99,7 @@ class Hemming:
         err_bit -= 1
 
         # если нашлась ошибка, инверируем бит с индексов err_bir
-        if err_bit != -1:
+        if err_bit != -1 and err_bit < len(encoded_source):
             encoded_source = encoded_source[:err_bit] + str(int(not int(encoded_source[err_bit]))) + encoded_source[
                                                                                                      err_bit + 1:]
         return encoded_source
