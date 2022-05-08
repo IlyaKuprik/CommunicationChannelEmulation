@@ -1,6 +1,3 @@
-import copy
-
-
 class Hemming:
 
     def __init__(self, msg_len=None):
@@ -8,7 +5,8 @@ class Hemming:
         self.control_bits = [i for i in range(1, msg_len * self.length + 1) if not i & (i - 1)]  # контрольные биты,
         # являются степенями двойки
 
-    def chars_to_bin(self, chars) -> str:
+    @staticmethod
+    def chars_to_bin(chars) -> str:
         """
         Преобразование символов в бинарный формат
         """
@@ -41,7 +39,7 @@ class Hemming:
                 value_bin[index - 1] = '1'
         return ''.join(value_bin)
 
-    def set_empty_control_bits(self, value_bin):
+    def set_empty_control_bits(self, value_bin) -> str:
         """
         Добавить в бинарный блок "пустые" контрольные биты
         """
