@@ -9,7 +9,10 @@ class Hemming:
     def chars_to_bin(chars) -> str:
         """
         Преобразование символов в бинарный формат
+        На вход: строковое сообщение
+        На выход: бинарный код переданного сообщения
         """
+        # ord - число символа в unicode
         return ''.join([bin(ord(c))[2:].zfill(8) for c in chars])
 
     def set_empty_control_bits(self, value_bin) -> str:
@@ -22,7 +25,15 @@ class Hemming:
             value_bin = value_bin[:bit - 1] + '0' + value_bin[bit - 1:]
         return value_bin
 
-    def get_control_bits_data(self, value_bin) -> str:
+    def set_empty_control_bits(self, value_bin) -> str:
+        """
+        Добавить в бинарный блок "пустые" контрольные биты
+        """
+        for bit in self.control_bits:
+            value_bin = value_bin[:bit - 1] + '0' + value_bin[bit - 1:]
+        return value_bin
+
+    def set_control_bits(self, value_bin) -> str:
         """
         Получение информации о контрольных битах из бинарных данных
         На вход: бинарная строка без контрольных бит
@@ -38,22 +49,6 @@ class Hemming:
             if bits_sum % 2:
                 value_bin[index - 1] = '1'
         return ''.join(value_bin)
-
-    def set_empty_control_bits(self, value_bin) -> str:
-        """
-        Добавить в бинарный блок "пустые" контрольные биты
-        """
-        for bit in self.control_bits:
-            value_bin = value_bin[:bit - 1] + '0' + value_bin[bit - 1:]
-        return value_bin
-
-    def set_control_bits(self, value_bin) -> str:
-        """
-        Установить значения контрольных бит
-        """
-
-        source_with_bits = self.get_control_bits_data(value_bin)
-        return source_with_bits
 
     def encode(self, source, is_bin=False) -> str:
         """
@@ -89,7 +84,7 @@ class Hemming:
         # удаляем контрольные биты в зашумленной строке
         encoded_without_bits = self.exclude_control_bits(encoded_source)
         # пересчитываем контрольные биты
-        new_encoded_source = self.get_control_bits_data(encoded_without_bits)
+        new_encoded_source = self.set_control_bits(encoded_without_bits)
 
         # определяем номер бита, в котором ошибка, сложив значения контрольных битов, которые изменились
         err_bit = 0
