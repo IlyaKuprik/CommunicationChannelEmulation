@@ -1,9 +1,12 @@
 class Hemming:
 
-    def __init__(self, msg_len=None):
+    def __init__(self, msg_len=None, is_bin=False):
         self.length = 8  # задаём длину одного символа
         self.control_bits = [i for i in range(1, msg_len * self.length + 1) if not i & (i - 1)]  # контрольные биты,
         # являются степенями двойки
+        self.is_bin = is_bin
+        if is_bin:
+            self.control_bits = [i for i in range(1, msg_len + 1) if not i & (i - 1)]
 
     @staticmethod
     def chars_to_bin(chars) -> str:
@@ -50,14 +53,14 @@ class Hemming:
                 value_bin[index - 1] = '1'
         return ''.join(value_bin)
 
-    def encode(self, source, is_bin=False) -> str:
+    def encode(self, source) -> str:
         """
         Кодирование данных
         На выход: переданное сообщение
         На выход: закодированное сообщение в бинарном формате, с вставленными контрольными битами
         """
         text_bin = source
-        if not is_bin:
+        if not self.is_bin:
             text_bin = self.chars_to_bin(source)
         result = self.set_control_bits(text_bin)
         return result
@@ -92,7 +95,6 @@ class Hemming:
             if new_encoded_source[index - 1] != encoded_source[index - 1]:
                 err_bit += index
         err_bit -= 1
-
         # если нашлась ошибка, инверируем бит с индексов err_bir
         if err_bit != -1 and err_bit < len(encoded_source):
             encoded_source = encoded_source[:err_bit] + str(int(not int(encoded_source[err_bit]))) + encoded_source[
@@ -113,6 +115,9 @@ class Hemming:
 
         # удаление контрольных битов из сообщения
         encoded = self.exclude_control_bits(encoded)
+
+        if self.is_bin:
+            return encoded
 
         # декодирование бинарных блоков и объединение в одно сообщение
         for clean_char in [encoded[i:i + 8] for i in range(len(encoded)) if not i % 8]:
